@@ -29,8 +29,8 @@ This project is an example of a simple repository pattern implementation in Rust
 
 ### Prerequisites
 
-- Rust (latest version)
-- MySQL database
+- Rust 1.81.0
+- MySQL 8
 - `.env` file with the following variable:
 
   ```
