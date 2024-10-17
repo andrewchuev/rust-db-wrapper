@@ -11,7 +11,7 @@ struct Product {
     id: u32,
     name: String,
     price: BigDecimal,
-    description: Option<String>, // Добавлено поле описания, если оно есть в таблице
+    description: Option<String>,
 }
 
 #[derive(Error, Debug)]
@@ -56,6 +56,27 @@ where
     }
 }
 
+async fn insert_record(pool: &MySqlPool, table_name: &str, fields: &[(&str, &str)]) -> Result<u64, FetchError> {
+    let columns: Vec<&str> = fields.iter().map(|(key, _)| *key).collect();
+    let values: Vec<&str> = fields.iter().map(|(_, value)| *value).collect();
+    let placeholders: Vec<String> = (0..fields.len()).map(|_| "?".to_string()).collect();
+
+    let query = format!(
+        "INSERT INTO {} ({}) VALUES ({})",
+        table_name,
+        columns.join(", "),
+        placeholders.join(", ")
+    );
+
+    let mut query_builder = sqlx::query(&query);
+    for value in &values {
+        query_builder = query_builder.bind(*value);
+    }
+
+    let result = query_builder.execute(pool).await?;
+    Ok(result.last_insert_id())
+}
+
 #[tokio::main]
 async fn main() -> Result<(), FetchError> {
     dotenv().ok();
@@ -74,6 +95,18 @@ async fn main() -> Result<(), FetchError> {
     match fetch_one::<Product>(&pool, "products", 1).await {
         Ok(product) => println!("Fetched product: {:?}", product),
         Err(e) => println!("Error fetching product by ID: {}", e),
+    }
+
+    let new_product_fields = [
+        ("name", "New Product"),
+        ("price", "99.99"),
+        ("description", "A newly added product"),
+        ("category_id", "1"),
+    ];
+
+    match insert_record(&pool, "products", &new_product_fields).await {
+        Ok(id) => println!("Inserted new product with ID: {}", id),
+        Err(e) => println!("Error inserting product: {}", e),
     }
 
     Ok(())
