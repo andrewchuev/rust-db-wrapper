@@ -92,6 +92,33 @@ impl Repository {
         let result: MySqlQueryResult = query_builder.execute(&self.pool).await?;
         Ok(result.last_insert_id())
     }
+
+    pub async fn update_record(&self, table_name: &str, id: u32, fields: HashMap<&str, &str>) -> Result<u64, FetchError> {
+        let set_clauses: Vec<String> = fields.keys().map(|key| format!("{} = ?", key)).collect();
+        let query = format!(
+            "UPDATE {} SET {} WHERE id = ?",
+            table_name,
+            set_clauses.join(", ")
+        );
+
+        let mut query_builder = sqlx::query(&query);
+        for value in fields.values() {
+            query_builder = query_builder.bind(*value);
+        }
+        query_builder = query_builder.bind(id);
+
+        let result: MySqlQueryResult = query_builder.execute(&self.pool).await?;
+        Ok(result.rows_affected())
+    }
+
+    pub async fn delete_record(&self, table_name: &str, id: u32) -> Result<u64, FetchError> {
+        let query = format!("DELETE FROM {} WHERE id = ?", table_name);
+        let result: MySqlQueryResult = sqlx::query(&query)
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+        Ok(result.rows_affected())
+    }
 }
 
 #[tokio::main]
@@ -127,6 +154,22 @@ async fn main() -> Result<(), FetchError> {
     match repo.insert_record("products", new_product_fields).await {
         Ok(id) => println!("Inserted new product with ID: {}", id),
         Err(e) => println!("Error inserting product: {}", e),
+    }
+
+    // Update a product
+    let mut update_fields = HashMap::new();
+    update_fields.insert("name", "Updated Product Name");
+    update_fields.insert("price", "199.99");
+
+    match repo.update_record("products", 1, update_fields).await {
+        Ok(rows) => println!("Updated {} row(s)", rows),
+        Err(e) => println!("Error updating product: {}", e),
+    }
+
+    // Delete a product
+    match repo.delete_record("products", 1).await {
+        Ok(rows) => println!("Deleted {} row(s)", rows),
+        Err(e) => println!("Error deleting product: {}", e),
     }
 
     Ok(())
