@@ -7,3 +7,5 @@ edition = "2021"
 bigdecimal = "0.4.1"
 sqlx = { version = "0.8.2", features = ["mysql", "bigdecimal", "runtime-async-std-native-tls"] }
 tokio = { version = "1", features = ["full"] }
+thiserror = "1.0.64"
+dotenv = "0.15.0"
