@@ -139,7 +139,7 @@ async fn main() -> Result<(), FetchError> {
     }
 
     // Fetch a single product by ID
-    match repo.fetch_one::<Product>("products", 1).await {
+    match repo.fetch_one::<Product>("products", 110).await {
         Ok(product) => println!("Fetched product: {:?}", product),
         Err(e) => println!("Error fetching product by ID: {}", e),
     }
@@ -161,13 +161,13 @@ async fn main() -> Result<(), FetchError> {
     update_fields.insert("name", "Updated Product Name");
     update_fields.insert("price", "199.99");
 
-    match repo.update_record("products", 1, update_fields).await {
+    match repo.update_record("products", 110, update_fields).await {
         Ok(rows) => println!("Updated {} row(s)", rows),
         Err(e) => println!("Error updating product: {}", e),
     }
 
     // Delete a product
-    match repo.delete_record("products", 1).await {
+    match repo.delete_record("products", 110).await {
         Ok(rows) => println!("Deleted {} row(s)", rows),
         Err(e) => println!("Error deleting product: {}", e),
     }
