@@ -1,0 +1,9 @@
+[package]
+name = "db-wrapper"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bigdecimal = "0.4.1"
+sqlx = { version = "0.8.2", features = ["mysql", "bigdecimal", "runtime-async-std-native-tls"] }
+tokio = { version = "1", features = ["full"] }
