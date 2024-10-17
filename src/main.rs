@@ -1,10 +1,11 @@
 use bigdecimal::BigDecimal;
-use sqlx::mysql::MySqlPool;
+use dotenv::dotenv;
+use sqlx::mysql::{MySqlPool, MySqlQueryResult};
 use sqlx::Error;
 use sqlx::FromRow;
-use thiserror::Error;
-use dotenv::dotenv;
+use std::collections::HashMap;
 use std::env;
+use thiserror::Error;
 
 #[derive(Debug, sqlx::FromRow)]
 struct Product {
@@ -24,57 +25,73 @@ enum FetchError {
     NoRecordFound(u32),
 }
 
-async fn fetch_all<T>(pool: &MySqlPool, table_name: &str) -> Result<Vec<T>, FetchError>
-where
-    T: for<'r> FromRow<'r, sqlx::mysql::MySqlRow> + Unpin + Send,
-{
-    let query = format!("SELECT * FROM {}", table_name);
-    let items: Vec<T> = sqlx::query_as::<_, T>(&query)
-        .fetch_all(pool)
-        .await?;
-
-    if items.is_empty() {
-        return Err(FetchError::NoRecordsFound(table_name.to_string()));
-    }
-
-    Ok(items)
+struct Repository {
+    pool: MySqlPool,
 }
 
-async fn fetch_one<T>(pool: &MySqlPool, table_name: &str, id: u32) -> Result<T, FetchError>
-where
-    T: for<'r> FromRow<'r, sqlx::mysql::MySqlRow> + Unpin + Send,
-{
-    let query = format!("SELECT * FROM {} WHERE id = ?", table_name);
-    let item: Option<T> = sqlx::query_as::<_, T>(&query)
-        .bind(id)
-        .fetch_optional(pool)
-        .await?;
-
-    match item {
-        Some(record) => Ok(record),
-        None => Err(FetchError::NoRecordFound(id)),
-    }
-}
-
-async fn insert_record(pool: &MySqlPool, table_name: &str, fields: &[(&str, &str)]) -> Result<u64, FetchError> {
-    let columns: Vec<&str> = fields.iter().map(|(key, _)| *key).collect();
-    let values: Vec<&str> = fields.iter().map(|(_, value)| *value).collect();
-    let placeholders: Vec<String> = (0..fields.len()).map(|_| "?".to_string()).collect();
-
-    let query = format!(
-        "INSERT INTO {} ({}) VALUES ({})",
-        table_name,
-        columns.join(", "),
-        placeholders.join(", ")
-    );
-
-    let mut query_builder = sqlx::query(&query);
-    for value in &values {
-        query_builder = query_builder.bind(*value);
+impl Repository {
+    pub fn new(pool: MySqlPool) -> Self {
+        Repository { pool }
     }
 
-    let result = query_builder.execute(pool).await?;
-    Ok(result.last_insert_id())
+    pub async fn fetch_all<T>(&self, table_name: &str, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<T>, FetchError>
+    where
+        T: for<'r> FromRow<'r, sqlx::mysql::MySqlRow> + Unpin + Send,
+    {
+        let mut query = format!("SELECT * FROM {}", table_name);
+        if let Some(limit) = limit {
+            query.push_str(&format!(" LIMIT {}", limit));
+        }
+        if let Some(offset) = offset {
+            query.push_str(&format!(" OFFSET {}", offset));
+        }
+
+        let items: Vec<T> = sqlx::query_as::<_, T>(&query)
+            .fetch_all(&self.pool)
+            .await?;
+
+        if items.is_empty() {
+            return Err(FetchError::NoRecordsFound(table_name.to_string()));
+        }
+
+        Ok(items)
+    }
+
+    pub async fn fetch_one<T>(&self, table_name: &str, id: u32) -> Result<T, FetchError>
+    where
+        T: for<'r> FromRow<'r, sqlx::mysql::MySqlRow> + Unpin + Send,
+    {
+        let query = format!("SELECT * FROM {} WHERE id = ?", table_name);
+        let item: Option<T> = sqlx::query_as::<_, T>(&query)
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?;
+
+        match item {
+            Some(record) => Ok(record),
+            None => Err(FetchError::NoRecordFound(id)),
+        }
+    }
+
+    pub async fn insert_record(&self, table_name: &str, fields: HashMap<&str, &str>) -> Result<u64, FetchError> {
+        let columns: Vec<&str> = fields.keys().cloned().collect();
+        let placeholders: Vec<String> = (0..fields.len()).map(|_| "?".to_string()).collect();
+
+        let query = format!(
+            "INSERT INTO {} ({}) VALUES ({})",
+            table_name,
+            columns.join(", "),
+            placeholders.join(", ")
+        );
+
+        let mut query_builder = sqlx::query(&query);
+        for value in fields.values() {
+            query_builder = query_builder.bind(*value);
+        }
+
+        let result: MySqlQueryResult = query_builder.execute(&self.pool).await?;
+        Ok(result.last_insert_id())
+    }
 }
 
 #[tokio::main]
@@ -82,8 +99,10 @@ async fn main() -> Result<(), FetchError> {
     dotenv().ok();
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = MySqlPool::connect(&database_url).await?;
+    let repo = Repository::new(pool);
 
-    match fetch_all::<Product>(&pool, "products").await {
+    // Fetch all products with pagination
+    match repo.fetch_all::<Product>("products", Some(10), Some(0)).await {
         Ok(products) => {
             for product in products {
                 println!("{:?}", product);
@@ -92,19 +111,20 @@ async fn main() -> Result<(), FetchError> {
         Err(e) => println!("Error fetching products: {}", e),
     }
 
-    match fetch_one::<Product>(&pool, "products", 1).await {
+    // Fetch a single product by ID
+    match repo.fetch_one::<Product>("products", 1).await {
         Ok(product) => println!("Fetched product: {:?}", product),
         Err(e) => println!("Error fetching product by ID: {}", e),
     }
 
-    let new_product_fields = [
-        ("name", "New Product"),
-        ("price", "99.99"),
-        ("description", "A newly added product"),
-        ("category_id", "1"),
-    ];
+    // Insert a new product
+    let mut new_product_fields = HashMap::new();
+    new_product_fields.insert("name", "New Product");
+    new_product_fields.insert("price", "99.99");
+    new_product_fields.insert("description", "A newly added product");
+    new_product_fields.insert("category_id", "1");
 
-    match insert_record(&pool, "products", &new_product_fields).await {
+    match repo.insert_record("products", new_product_fields).await {
         Ok(id) => println!("Inserted new product with ID: {}", id),
         Err(e) => println!("Error inserting product: {}", e),
     }

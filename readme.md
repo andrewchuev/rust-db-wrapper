@@ -1,1 +1,1 @@
-# MySQL wrapper with Rust using SQLx
+# ~~MySQL wrapper with Rust using SQLx~~
