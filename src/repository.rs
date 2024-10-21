@@ -1,8 +1,8 @@
 use crate::{FetchError, Repository};
+use log::debug;
 use sqlx::mysql::MySqlQueryResult;
 use sqlx::{query_as, FromRow, MySqlPool};
 use std::collections::HashMap;
-use log::debug;
 
 impl Repository {
     pub fn new(pool: MySqlPool) -> Self {

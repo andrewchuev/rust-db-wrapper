@@ -1,0 +1,16 @@
+2024-10-21 18:40:28 [DEBUG] summary="SET sql_mode=(SELECT CONCAT(@@sql_mode, ',PIPES_AS_CONCAT,NO_ENGINE_SUBSTITUTION')),time_zone='+00:00',NAMES …" db.statement="\n\nSET\n  sql_mode =(\n    SELECT\n      CONCAT(\n        @ @sql_mode,\n        ',PIPES_AS_CONCAT,NO_ENGINE_SUBSTITUTION'\n      )\n  ),\n  time_zone = '+00:00',\n  NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;\n" rows_affected=0 rows_returned=0 elapsed=2.2648ms elapsed_secs=0.0022648
+2024-10-21 18:40:28 [DEBUG] SQL: SELECT * FROM `wpbi_posts` WHERE post_type='post' LIMIT 10 OFFSET 0
+2024-10-21 18:40:28 [DEBUG] summary="SELECT * FROM `wpbi_posts` …" db.statement="\n\nSELECT\n  *\nFROM\n  `wpbi_posts`\nWHERE\n  post_type = 'post'\nLIMIT\n  10 OFFSET 0\n" rows_affected=0 rows_returned=10 elapsed=4.5336ms elapsed_secs=0.0045336
+2024-10-21 18:40:28 [DEBUG] Post { ID: 26458, post_title: "10 gardens to visit in Auckland, things to do", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 38727, post_title: "Best Travel Deals in New Zealand - accommodation, car hire, tours and more", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 40594, post_title: "Travel deals New Zealand best bits travel guide specials", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 46028, post_title: "NZ Travel Guides – Location Map and NZ Destinations a Click Away", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 46300, post_title: "Brook Waimarama Sanctuary - Conservation in Action", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 46310, post_title: "New Zealand - Start Your Holiday With a Day Trip or Two", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 344, post_title: "Zealandia, a city sanctuary hidden in plain sight", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 353, post_title: "Where it all started, Hokianga Harbour, Kupe and the story of Aotearoa", post_content: "Hokianga Harbour", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 391, post_title: "What’s so great about Winton", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] Post { ID: 443, post_title: "A day in Greytown", post_content: "", post_type: Some("post") }
+2024-10-21 18:40:28 [DEBUG] SQL: SELECT * FROM `wpbi_posts` WHERE ID = ?
+2024-10-21 18:40:28 [DEBUG] summary="SELECT * FROM `wpbi_posts` …" db.statement="\n\nSELECT\n  *\nFROM\n  `wpbi_posts`\nWHERE\n  ID = ?\n" rows_affected=0 rows_returned=1 elapsed=2.2564ms elapsed_secs=0.0022564
+2024-10-21 18:40:28 [DEBUG] Fetched product: Post { ID: 26458, post_title: "10 gardens to visit in Auckland, things to do", post_content: "", post_type: Some("post") }

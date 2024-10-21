@@ -6,10 +6,11 @@ mod models;
 use dotenv::dotenv;
 use sqlx::mysql::MySqlPool;
 use sqlx::Error;
-use sqlx::FromRow;
 
+
+use chrono::Local;
+use fern::Dispatch;
 use std::env;
-
 use thiserror::Error;
 
 use crate::queries::queries::{get_post, get_posts};
@@ -18,8 +19,6 @@ use crate::queries::queries::{get_post, get_posts};
 enum FetchError {
     #[error("Database query failed: {0}")]
     QueryError(#[from] Error),
-    #[error("No records found in table {0}")]
-    NoRecordsFound(String),
     #[error("No record found with id {0}")]
     NoRecordFound(u32),
 }
@@ -32,7 +31,8 @@ struct Repository {
 #[tokio::main]
 async fn main() -> Result<(), FetchError> {
     dotenv().ok();
-    env_logger::init();
+
+    setup_logger().expect("Failed to initialize logger");
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = MySqlPool::connect(&database_url).await?;
@@ -86,5 +86,27 @@ async fn main() -> Result<(), FetchError> {
         Err(e) => println!("Error deleting product: {}", e),
     }*/
 
+    Ok(())
+}
+
+fn setup_logger() -> Result<(), fern::InitError> {
+    // Настройка логгера
+    Dispatch::new()
+        // Устанавливаем уровень логирования
+        .level(log::LevelFilter::Debug)
+        // Логгирование в консоль
+        .chain(std::io::stdout())
+        // Логгирование в файл с добавлением даты
+        .chain(fern::log_file("output.log")?)
+        // Форматирование сообщений
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{} [{}] {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S"),
+                record.level(),
+                message
+            ))
+        })
+        .apply()?;
     Ok(())
 }

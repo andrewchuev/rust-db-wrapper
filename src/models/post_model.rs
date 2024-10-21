@@ -1,4 +1,3 @@
-use bigdecimal::BigDecimal;
 #[derive(Debug, sqlx::FromRow)]
 pub struct Post {
     ID: u32,
