@@ -1,14 +1,18 @@
 mod repository;
-mod product;
+
+mod queries;
+mod models;
+
 use dotenv::dotenv;
-use sqlx::mysql::{MySqlPool};
+use sqlx::mysql::MySqlPool;
 use sqlx::Error;
 use sqlx::FromRow;
-use std::collections::HashMap;
+
 use std::env;
 
 use thiserror::Error;
-use crate::product::Product;
+
+use crate::queries::queries::get_posts;
 
 #[derive(Error, Debug)]
 enum FetchError {
@@ -32,24 +36,27 @@ async fn main() -> Result<(), FetchError> {
     let pool = MySqlPool::connect(&database_url).await?;
     let repo = Repository::new(pool);
 
+    get_posts(repo).await;
+
+
     // Fetch all products with pagination
-    match repo.fetch_all::<Product>("products", Some(10), Some(0)).await {
+    /*match repo.fetch_all::<Product>("products", Some(10), Some(0)).await {
         Ok(products) => {
             for product in products {
                 println!("{:?}", product);
             }
         }
         Err(e) => println!("Error fetching products: {}", e),
-    }
+    }*/
 
     // Fetch a single product by ID
-    match repo.fetch_one::<Product>("products", 110).await {
+    /*match repo.fetch_one::<Product>("products", 110).await {
         Ok(product) => println!("Fetched product: {:?}", product),
         Err(e) => println!("Error fetching product by ID: {}", e),
-    }
+    }*/
 
     // Insert a new product
-    let mut new_product_fields = HashMap::new();
+    /*let mut new_product_fields = HashMap::new();
     new_product_fields.insert("name", "New Product");
     new_product_fields.insert("price", "99.99");
     new_product_fields.insert("description", "A newly added product");
@@ -58,23 +65,23 @@ async fn main() -> Result<(), FetchError> {
     match repo.insert_record("products", new_product_fields).await {
         Ok(id) => println!("Inserted new product with ID: {}", id),
         Err(e) => println!("Error inserting product: {}", e),
-    }
+    }*/
 
     // Update a product
-    let mut update_fields = HashMap::new();
+    /*let mut update_fields = HashMap::new();
     update_fields.insert("name", "Updated Product Name");
     update_fields.insert("price", "199.99");
 
     match repo.update_record("products", 110, update_fields).await {
         Ok(rows) => println!("Updated {} row(s)", rows),
         Err(e) => println!("Error updating product: {}", e),
-    }
+    }*/
 
     // Delete a product
-    match repo.delete_record("products", 110).await {
+    /*match repo.delete_record("products", 110).await {
         Ok(rows) => println!("Deleted {} row(s)", rows),
         Err(e) => println!("Error deleting product: {}", e),
-    }
+    }*/
 
     Ok(())
 }

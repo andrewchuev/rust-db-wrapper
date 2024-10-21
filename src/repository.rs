@@ -1,24 +1,32 @@
-use std::collections::HashMap;
-use sqlx::{FromRow, MySqlPool};
-use sqlx::mysql::MySqlQueryResult;
 use crate::{FetchError, Repository};
+use sqlx::mysql::MySqlQueryResult;
+use sqlx::{FromRow, MySqlPool};
+use std::collections::HashMap;
 
 impl Repository {
     pub fn new(pool: MySqlPool) -> Self {
         Repository { pool }
     }
 
-    pub async fn fetch_all<T>(&self, table_name: &str, limit: Option<u32>, offset: Option<u32>) -> Result<Vec<T>, FetchError>
+    pub async fn fetch_all<T>(&self, table_name: &str, limit: Option<u32>, offset: Option<u32>, condition: Option<&str>) -> Result<Vec<T>, FetchError>
     where
         T: for<'r> FromRow<'r, sqlx::mysql::MySqlRow> + Unpin + Send,
     {
         let mut query = format!("SELECT * FROM {}", table_name);
+
+        if let Some(condition) = condition {
+            query.push_str(&format!(" WHERE {}", condition));
+        }
+
         if let Some(limit) = limit {
             query.push_str(&format!(" LIMIT {}", limit));
         }
+
         if let Some(offset) = offset {
             query.push_str(&format!(" OFFSET {}", offset));
         }
+
+        println!("SQL: {}", query);
 
         let items: Vec<T> = sqlx::query_as::<_, T>(&query)
             .fetch_all(&self.pool)
