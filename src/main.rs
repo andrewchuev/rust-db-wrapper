@@ -12,7 +12,7 @@ use std::env;
 
 use thiserror::Error;
 
-use crate::queries::queries::get_posts;
+use crate::queries::queries::{get_post, get_posts};
 
 #[derive(Error, Debug)]
 enum FetchError {
@@ -32,11 +32,14 @@ struct Repository {
 #[tokio::main]
 async fn main() -> Result<(), FetchError> {
     dotenv().ok();
+    env_logger::init();
+
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let pool = MySqlPool::connect(&database_url).await?;
     let repo = Repository::new(pool);
 
-    get_posts(repo).await;
+    get_posts(&repo).await;
+    get_post(&repo, 26458).await;
 
 
     // Fetch all products with pagination

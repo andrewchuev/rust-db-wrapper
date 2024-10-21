@@ -1,7 +1,8 @@
 use crate::{FetchError, Repository};
 use sqlx::mysql::MySqlQueryResult;
-use sqlx::{FromRow, MySqlPool};
+use sqlx::{query_as, FromRow, MySqlPool};
 use std::collections::HashMap;
+use log::debug;
 
 impl Repository {
     pub fn new(pool: MySqlPool) -> Self {
@@ -12,49 +13,45 @@ impl Repository {
     where
         T: for<'r> FromRow<'r, sqlx::mysql::MySqlRow> + Unpin + Send,
     {
-        let mut query = format!("SELECT * FROM {}", table_name);
+        let mut query = format!("SELECT * FROM `{}`", table_name);
 
         if let Some(condition) = condition {
-            query.push_str(&format!(" WHERE {}", condition));
+            query.push_str(" WHERE ");
+            query.push_str(condition);
         }
 
         if let Some(limit) = limit {
-            query.push_str(&format!(" LIMIT {}", limit));
+            query.push_str(" LIMIT ");
+            query.push_str(&limit.to_string());
         }
 
         if let Some(offset) = offset {
-            query.push_str(&format!(" OFFSET {}", offset));
+            query.push_str(" OFFSET ");
+            query.push_str(&offset.to_string());
         }
 
-        println!("SQL: {}", query);
+        debug!("SQL: {}", query);
 
-        let items: Vec<T> = sqlx::query_as::<_, T>(&query)
+        let items: Vec<T> = query_as::<_, T>(&query)
             .fetch_all(&self.pool)
             .await?;
 
-        if items.is_empty() {
-            return Err(FetchError::NoRecordsFound(table_name.to_string()));
-        }
-
         Ok(items)
     }
-
     pub async fn fetch_one<T>(&self, table_name: &str, id: u32) -> Result<T, FetchError>
     where
         T: for<'r> FromRow<'r, sqlx::mysql::MySqlRow> + Unpin + Send,
     {
-        let query = format!("SELECT * FROM {} WHERE id = ?", table_name);
+        let query = format!("SELECT * FROM `{}` WHERE ID = ?", table_name);
+        debug!("SQL: {}", query);
+
         let item: Option<T> = sqlx::query_as::<_, T>(&query)
             .bind(id)
             .fetch_optional(&self.pool)
             .await?;
 
-        match item {
-            Some(record) => Ok(record),
-            None => Err(FetchError::NoRecordFound(id)),
-        }
+        item.ok_or(FetchError::NoRecordFound(id))
     }
-
     pub async fn insert_record(&self, table_name: &str, fields: HashMap<&str, &str>) -> Result<u64, FetchError> {
         let columns: Vec<&str> = fields.keys().cloned().collect();
         let placeholders: Vec<String> = (0..fields.len()).map(|_| "?".to_string()).collect();
