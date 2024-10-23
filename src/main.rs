@@ -90,15 +90,10 @@ async fn main() -> Result<(), FetchError> {
 }
 
 fn setup_logger() -> Result<(), fern::InitError> {
-    // Настройка логгера
     Dispatch::new()
-        // Устанавливаем уровень логирования
         .level(log::LevelFilter::Debug)
-        // Логгирование в консоль
         .chain(std::io::stdout())
-        // Логгирование в файл с добавлением даты
         .chain(fern::log_file("output.log")?)
-        // Форматирование сообщений
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{} [{}] {}",
